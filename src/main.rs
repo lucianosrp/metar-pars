@@ -57,7 +57,7 @@ fn wind(s: &str) -> IResult<&str, Wind> {
     let (rest, unit) = take_while(|x: char| is_alphabetic(x as u8))(rest)?;
     let (rest, variable_components) = parse_variable_wind_direction(rest).unwrap();
 
-    let w = Wind::new(direction, speed, ghust_speed, unit, variable_components).unwrap();
+    let w = Wind::from_str(direction, speed, ghust_speed, unit, variable_components).unwrap();
     Ok((rest, w))
 }
 
@@ -79,8 +79,8 @@ enum WindUnit {
 
 #[derive(Debug, PartialEq)]
 enum WindDirection {
-    DIRECT(u16),
-    VARIABLE,
+    Direct(u16),
+    Variable,
 }
 
 #[derive(Debug, PartialEq)]
@@ -93,20 +93,34 @@ struct Wind {
 }
 impl Wind {
     fn new(
+        direction: WindDirection,
+        speed: u16,
+        ghust_speed: Option<u16>,
+        unit: WindUnit,
+        variable_direction: Option<(u16, u16)>,
+    ) -> Result<Wind, Box<dyn std::error::Error>> {
+        Ok(Wind {
+            direction,
+            speed,
+            ghust_speed,
+            unit,
+            variable_direction,
+        })
+    }
+
+    fn from_str(
         direction: &str,
         speed: &str,
         ghust_speed: Option<&str>,
         unit: &str,
         variable_direction: Option<(u16, u16)>,
     ) -> Result<Wind, Box<dyn std::error::Error>> {
-        let g = ghust_speed.and_then(|s| s.parse::<u16>().ok());
-        Ok(Wind {
-            direction: direction.parse()?,
-            speed: speed.parse()?,
-            ghust_speed: g,
-            unit: unit.parse()?,
-            variable_direction: variable_direction,
-        })
+        let direction: WindDirection = direction.parse()?;
+        let ghust_speed = ghust_speed.and_then(|s| s.parse::<u16>().ok());
+        let speed: u16 = speed.parse()?;
+        let unit: WindUnit = unit.parse()?;
+
+        Wind::new(direction, speed, ghust_speed, unit, variable_direction)
     }
 }
 
@@ -127,10 +141,10 @@ impl FromStr for WindDirection {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.parse::<u16>() {
-            Ok(num) => Ok(WindDirection::DIRECT(num)),
+            Ok(num) => Ok(WindDirection::Direct(num)),
             Err(_) => {
                 if s == "VRB" {
-                    Ok(WindDirection::VARIABLE)
+                    Ok(WindDirection::Variable)
                 } else {
                     Err("Not a valid WindDirection".to_string())
                 }
@@ -212,26 +226,33 @@ mod test {
     fn test_wind() {
         assert_eq!(
             wind("22010KT").unwrap().1,
-            Wind::new("220", "10", None, "KT", None).unwrap()
+            Wind::new(WindDirection::Direct(220), 10, None, WindUnit::KT, None).unwrap()
         );
 
         assert_eq!(
             wind("220100MPS").unwrap().1,
-            Wind::new("220", "100", None, "MPS", None).unwrap()
+            Wind::new(WindDirection::Direct(220), 100, None, WindUnit::MPS, None).unwrap()
         );
         assert_eq!(
             wind("22010G40KT").unwrap().1,
-            Wind::new("220", "10", Some(&"40"), "KT", None).unwrap()
+            Wind::new(WindDirection::Direct(220), 10, Some(40), WindUnit::KT, None).unwrap()
         );
 
         assert_eq!(
             wind("22010G40KT 200V240").unwrap().1,
-            Wind::new("220", "10", Some(&"40"), "KT", Some((200, 240))).unwrap()
+            Wind::new(
+                WindDirection::Direct(220),
+                10,
+                Some(40),
+                WindUnit::KT,
+                Some((200, 240))
+            )
+            .unwrap()
         );
 
         assert_eq!(
             wind("VRB10G40KT").unwrap().1,
-            Wind::new("VRB", "10", Some(&"40"), "KT", None).unwrap()
+            Wind::new(WindDirection::Variable, 10, Some(40), WindUnit::KT, None).unwrap()
         )
     }
 }
