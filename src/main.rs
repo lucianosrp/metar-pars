@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::error::Error;
 use std::num::ParseIntError;
 use std::str::FromStr;
@@ -72,9 +70,9 @@ fn parse_with_bounds(min: u8, max: u8, s: &str) -> Result<u8, ParseIntError> {
 
 #[derive(Debug, PartialEq)]
 enum WindUnit {
-    MPS,
-    MPH,
-    KT,
+    Mps,
+    Mph,
+    Kt,
 }
 
 #[derive(Debug, PartialEq)]
@@ -129,9 +127,9 @@ impl FromStr for WindUnit {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_uppercase().as_str() {
-            "MPS" => Ok(WindUnit::MPS),
-            "MPH" => Ok(WindUnit::MPH),
-            "KT" => Ok(WindUnit::KT),
+            "MPS" => Ok(WindUnit::Mps),
+            "MPH" => Ok(WindUnit::Mph),
+            "KT" => Ok(WindUnit::Kt),
             _ => Err("Not a WindUnit".to_string()),
         }
     }
@@ -192,7 +190,7 @@ impl METAR {
 fn main() {
     let s = Instant::now();
     let sample = "METAR LICJ 141600Z 120120G50KT 090V150 1400 R04/P1500N R22/P1500U +SN BKN022 OVC050 M04/M07 Q1020 NOSIG 8849//91=";
-    let metar = METAR::parse(&sample);
+    let metar = METAR::parse(sample);
     println!("{:?}", metar);
     println!("{:?}", s.elapsed());
 }
@@ -226,16 +224,16 @@ mod test {
     fn test_wind() {
         assert_eq!(
             wind("22010KT").unwrap().1,
-            Wind::new(WindDirection::Direct(220), 10, None, WindUnit::KT, None).unwrap()
+            Wind::new(WindDirection::Direct(220), 10, None, WindUnit::Kt, None).unwrap()
         );
 
         assert_eq!(
             wind("220100MPS").unwrap().1,
-            Wind::new(WindDirection::Direct(220), 100, None, WindUnit::MPS, None).unwrap()
+            Wind::new(WindDirection::Direct(220), 100, None, WindUnit::Mps, None).unwrap()
         );
         assert_eq!(
             wind("22010G40KT").unwrap().1,
-            Wind::new(WindDirection::Direct(220), 10, Some(40), WindUnit::KT, None).unwrap()
+            Wind::new(WindDirection::Direct(220), 10, Some(40), WindUnit::Kt, None).unwrap()
         );
 
         assert_eq!(
@@ -244,7 +242,7 @@ mod test {
                 WindDirection::Direct(220),
                 10,
                 Some(40),
-                WindUnit::KT,
+                WindUnit::Kt,
                 Some((200, 240))
             )
             .unwrap()
@@ -252,7 +250,7 @@ mod test {
 
         assert_eq!(
             wind("VRB10G40KT").unwrap().1,
-            Wind::new(WindDirection::Variable, 10, Some(40), WindUnit::KT, None).unwrap()
+            Wind::new(WindDirection::Variable, 10, Some(40), WindUnit::Kt, None).unwrap()
         )
     }
 }
