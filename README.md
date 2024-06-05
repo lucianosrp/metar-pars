@@ -7,10 +7,10 @@ Following [this useful page](https://wiki.ivao.aero/en/home/training/documentati
 
 ## Elements covered 
 
-- [] Report type (METAR, SPECI)
+- [ ] Report type (METAR, SPECI)
 - [x] ICAO Station identifier
 - [x] Forecast Times (Mostly)
 - [x] Wind
-- [] Visibility
-- [] Runway Visual Range (RVR)
-- [] Present Weather
+- [ ] Visibility
+- [ ] Runway Visual Range (RVR)
+- [ ] Present Weather
