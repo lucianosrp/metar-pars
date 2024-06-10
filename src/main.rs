@@ -42,29 +42,28 @@ fn parse_variable_wind_direction(s: &str) -> Result<(&str, Option<(u16, u16)>), 
 fn wind(s: &str) -> IResult<&str, Wind> {
     let (rest, direction) = take(3usize)(s)?;
     let (rest, speed) = take_while(|x: char| is_digit(x as u8))(rest)?;
-    let ghust_speed: Option<&str> = None;
+    let gust_speed: Option<&str> = None;
 
-    let (rest, ghust_speed) = if &rest[..1] == "G" {
-        // Ghusting
-        let (rest, ghust_speed) = take_while(|x: char| is_digit(x as u8))(&rest[1..])?;
-        (rest, Some(ghust_speed))
+    let (rest, gust_speed) = if &rest[..1] == "G" {
+        // Gusting
+        let (rest, gust_speed) = take_while(|x: char| is_digit(x as u8))(&rest[1..])?;
+        (rest, Some(gust_speed))
     } else {
-        (rest, ghust_speed)
+        (rest, gust_speed)
     };
 
     let (rest, unit) = take_while(|x: char| is_alphabetic(x as u8))(rest)?;
     let (rest, variable_components) = parse_variable_wind_direction(rest).unwrap();
 
-    let w = Wind::from_str(direction, speed, ghust_speed, unit, variable_components).unwrap();
+    let w = Wind::from_str(direction, speed, gust_speed, unit, variable_components).unwrap();
     Ok((rest, w))
 }
 
 fn parse_with_bounds(min: u8, max: u8, s: &str) -> Result<u8, ParseIntError> {
-    let d = s.parse::<u8>()?;
-    if d >= min && d <= max {
-        Ok(d)
-    } else {
-        panic!("out of bounds")
+    match s.parse::<u8>() {
+        Ok(d) if d >= min && d <= max => Ok(d),
+        Ok(_) => panic!("Value out of bounds"),
+        Err(e) => Err(e),
     }
 }
 
@@ -85,7 +84,7 @@ enum WindDirection {
 struct Wind {
     direction: WindDirection,
     speed: u16,
-    ghust_speed: Option<u16>,
+    gust_speed: Option<u16>,
     unit: WindUnit,
     variable_direction: Option<(u16, u16)>,
 }
@@ -93,14 +92,14 @@ impl Wind {
     fn new(
         direction: WindDirection,
         speed: u16,
-        ghust_speed: Option<u16>,
+        gust_speed: Option<u16>,
         unit: WindUnit,
         variable_direction: Option<(u16, u16)>,
     ) -> Result<Wind, Box<dyn std::error::Error>> {
         Ok(Wind {
             direction,
             speed,
-            ghust_speed,
+            gust_speed,
             unit,
             variable_direction,
         })
@@ -109,16 +108,16 @@ impl Wind {
     fn from_str(
         direction: &str,
         speed: &str,
-        ghust_speed: Option<&str>,
+        gust_speed: Option<&str>,
         unit: &str,
         variable_direction: Option<(u16, u16)>,
     ) -> Result<Wind, Box<dyn std::error::Error>> {
         let direction: WindDirection = direction.parse()?;
-        let ghust_speed = ghust_speed.and_then(|s| s.parse::<u16>().ok());
+        let gust_speed = gust_speed.and_then(|s| s.parse::<u16>().ok());
         let speed: u16 = speed.parse()?;
         let unit: WindUnit = unit.parse()?;
 
-        Wind::new(direction, speed, ghust_speed, unit, variable_direction)
+        Wind::new(direction, speed, gust_speed, unit, variable_direction)
     }
 }
 
@@ -176,14 +175,17 @@ struct METAR {
 }
 
 impl METAR {
-    fn parse(s: &str) -> METAR {
-        let s = s.replace("METAR ", "");
-        let res = tuple((take4, multispace1, time, multispace1, wind))(&s).unwrap();
-        METAR {
-            station: res.1 .0.to_string(),
-            time: res.1 .2 .0,
-            wind: res.1 .4,
-        }
+    fn parse(s: &str) -> Result<METAR, nom::Err<nom::error::Error<&str>>> {
+        let (_, (station, _, (time, _), _, wind)) =
+            tuple((take4, multispace1, time, multispace1, wind))(
+                s.trim_start_matches("METAR").trim(),
+            )?;
+
+        Ok(METAR {
+            station: station.to_owned(),
+            time,
+            wind,
+        })
     }
 }
 
