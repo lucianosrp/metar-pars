@@ -14,3 +14,12 @@ Following [this useful page](https://wiki.ivao.aero/en/home/training/documentati
 - [ ] Visibility
 - [ ] Runway Visual Range (RVR)
 - [ ] Present Weather
+- [ ] Cloud Layers
+- [ ] Air temperature and dew point
+- [ ] Atmospheric pressure
+- [ ] Supplementary information
+- [ ] Prevision
+- [ ] AIRMETs
+- [ ] SIGMETs
+- [ ] Volcanic eruption
+- [ ] Pilot weather report
