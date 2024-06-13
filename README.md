@@ -11,7 +11,7 @@ Following [this useful page](https://wiki.ivao.aero/en/home/training/documentati
 - [x] ICAO Station identifier
 - [x] Forecast Times (Mostly)
 - [x] Wind
-- [ ] Visibility
+- [x] Visibility
 - [ ] Runway Visual Range (RVR)
 - [ ] Present Weather
 - [ ] Cloud Layers
