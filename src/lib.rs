@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
@@ -27,7 +26,7 @@ fn parse_v(s: &str) -> IResult<&str, &str> {
     tag("V")(s)
 }
 
-fn parse_variable_wind_direction(s: &str) -> Result<(&str, Option<(u16, u16)>), Box<dyn Error>> {
+fn parse_variable_wind_direction(s: &str) -> Result<(&str, Option<(u16, u16)>), anyhow::Error> {
     let components = tuple((
         take_while(|x: char| is_digit(x as u8)),
         parse_v,
@@ -97,7 +96,7 @@ impl Wind {
         gust_speed: Option<u16>,
         unit: WindUnit,
         variable_direction: Option<(u16, u16)>,
-    ) -> Result<Wind, Box<dyn std::error::Error>> {
+    ) -> anyhow::Result<Wind> {
         Ok(Wind {
             direction,
             speed,
@@ -113,7 +112,7 @@ impl Wind {
         gust_speed: Option<&str>,
         unit: &str,
         variable_direction: Option<(u16, u16)>,
-    ) -> Result<Wind, Box<dyn std::error::Error>> {
+    ) -> anyhow::Result<Wind> {
         let direction: WindDirection = direction.parse()?;
         let gust_speed = gust_speed.and_then(|s| s.parse::<u16>().ok());
         let speed: u16 = speed.parse()?;
@@ -124,19 +123,19 @@ impl Wind {
 }
 
 impl FromStr for WindUnit {
-    type Err = String;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_uppercase().as_str() {
             "MPS" => Ok(WindUnit::Mps),
             "MPH" => Ok(WindUnit::Mph),
             "KT" => Ok(WindUnit::Kt),
-            _ => Err("Not a WindUnit".to_string()),
+            _ => Err(anyhow::Error::msg("Not a WindUnit")),
         }
     }
 }
 impl FromStr for WindDirection {
-    type Err = String;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.parse::<u16>() {
@@ -145,7 +144,7 @@ impl FromStr for WindDirection {
                 if s == "VRB" {
                     Ok(WindDirection::Variable)
                 } else {
-                    Err("Not a valid WindDirection".to_string())
+                    Err(anyhow::Error::msg("Not a valid WindDirection"))
                 }
             }
         }
@@ -178,7 +177,7 @@ pub enum Visibility {
 }
 
 impl FromStr for Visibility {
-    type Err = String;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // Check for special cases first
@@ -191,7 +190,7 @@ impl FromStr for Visibility {
 
         s.parse::<u16>()
             .map(Visibility::Indicator)
-            .map_err(|_| "Cannot parse into Visibility".to_string())
+            .map_err(|_| anyhow::Error::msg("Cannot parse into Visibility"))
     }
 }
 
@@ -220,11 +219,10 @@ pub struct METAR {
 }
 
 impl METAR {
-    pub fn from_str(s: &str) -> Result<METAR, nom::Err<nom::error::Error<&str>>> {
-        let (remaining, (station, (time, _), wind, visibility)) =
+    pub fn parse(s: &str) -> Result<METAR, nom::Err<nom::error::Error<&str>>> {
+        let (_, (station, (time, _), wind, visibility)) =
             tuple((take4, time, wind, visibility))(s.trim_start_matches("METAR").trim())?;
 
-        println!("Remaining {:?}", remaining);
         Ok(METAR {
             station: station.to_owned(),
             time,
