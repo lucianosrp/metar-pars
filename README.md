@@ -7,7 +7,7 @@ Following [this useful page](https://wiki.ivao.aero/en/home/training/documentati
 
 ## Elements covered 
 
-- [ ] Report type (METAR, SPECI)
+- [x] Report type (AUTO , Manual)
 - [x] ICAO Station identifier
 - [x] Forecast Times (Mostly)
 - [x] Wind

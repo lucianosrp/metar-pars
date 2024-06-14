@@ -4,7 +4,7 @@ use std::str::FromStr;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while};
 use nom::character::{is_alphabetic, is_digit};
-use nom::combinator::map_res;
+use nom::combinator::{map_res, opt};
 use nom::error::{context, ErrorKind};
 use nom::multi::count;
 use nom::sequence::tuple;
@@ -68,11 +68,37 @@ fn parse_with_bounds(min: u8, max: u8, s: &str) -> Result<u8, ParseIntError> {
     }
 }
 
+fn report_type(s:&str) -> IResult<&str,ReportType>{
+    let parser =opt(alt((tag("AUTO"),tag("NIL"))));
+    map_res(parser, |x:Option<&str>| x.unwrap_or("").parse())(s.trim_start())
+}
+
+
+#[derive(Debug, PartialEq)]
+enum ReportType{
+    Manual,
+    Auto,
+    Nil
+}
+
+
 #[derive(Debug, PartialEq)]
 enum WindUnit {
     Mps,
     Mph,
     Kt,
+}
+
+impl FromStr for ReportType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s{
+            "AUTO" => Ok(Self::Auto),
+            "NIL" => Ok(Self::Nil),
+            _ => Ok(Self::Manual)
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -144,7 +170,10 @@ impl FromStr for WindDirection {
                 if s == "VRB" {
                     Ok(WindDirection::Variable)
                 } else {
-                    Err(anyhow::Error::msg("Not a valid WindDirection"))
+                    Err(anyhow::Error::msg(format!(
+                        "{:?} Not a valid WindDirection",
+                        s
+                    )))
                 }
             }
         }
@@ -212,6 +241,7 @@ pub fn visibility(s: &str) -> IResult<&str, Visibility> {
 
 #[derive(Debug, PartialEq)]
 pub struct METAR {
+    report_type:ReportType,
     station: String,
     time: Time,
     wind: Wind,
@@ -220,10 +250,11 @@ pub struct METAR {
 
 impl METAR {
     pub fn parse(s: &str) -> Result<METAR, nom::Err<nom::error::Error<&str>>> {
-        let (_, (station, (time, _), wind, visibility)) =
-            tuple((take4, time, wind, visibility))(s.trim_start_matches("METAR").trim())?;
+        let (_, (station, (time, _), report_type, wind, visibility)) =
+            tuple((take4, time, report_type, wind, visibility))(s.trim_start_matches("METAR").trim())?;
 
         Ok(METAR {
+            report_type,
             station: station.to_owned(),
             time,
             wind,
@@ -237,6 +268,14 @@ mod test {
 
     use super::*;
 
+
+    #[test]
+    fn test_report_type() {
+        assert_eq!(report_type("AUTO").unwrap().1, ReportType::Auto);
+        assert_eq!(report_type("NIL").unwrap().1, ReportType::Nil);
+        assert_eq!(report_type("Something else").unwrap().1, ReportType::Manual);
+        assert_eq!(report_type("").unwrap().1, ReportType::Manual);
+    }
     #[test]
     fn test_variable_wind() {
         assert_eq!(
