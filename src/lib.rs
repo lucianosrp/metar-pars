@@ -5,10 +5,11 @@ use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while};
 use nom::character::{is_alphabetic, is_digit};
 use nom::combinator::{map_res, opt};
-use nom::error::{context, ErrorKind};
 use nom::multi::count;
 use nom::sequence::tuple;
 use nom::{bytes::complete::take, IResult};
+use visibility::{parse_visibility, Visibility};
+mod visibility;
 
 fn take4(s: &str) -> IResult<&str, &str> {
     take(4usize)(s)
@@ -68,19 +69,17 @@ fn parse_with_bounds(min: u8, max: u8, s: &str) -> Result<u8, ParseIntError> {
     }
 }
 
-fn report_type(s:&str) -> IResult<&str,ReportType>{
-    let parser =opt(alt((tag("AUTO"),tag("NIL"))));
-    map_res(parser, |x:Option<&str>| x.unwrap_or("").parse())(s.trim_start())
+fn report_type(s: &str) -> IResult<&str, ReportType> {
+    let parser = opt(alt((tag("AUTO"), tag("NIL"))));
+    map_res(parser, |x: Option<&str>| x.unwrap_or("").parse())(s.trim_start())
 }
-
 
 #[derive(Debug, PartialEq)]
-enum ReportType{
+enum ReportType {
     Manual,
     Auto,
-    Nil
+    Nil,
 }
-
 
 #[derive(Debug, PartialEq)]
 enum WindUnit {
@@ -93,10 +92,10 @@ impl FromStr for ReportType {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s{
+        match s {
             "AUTO" => Ok(Self::Auto),
             "NIL" => Ok(Self::Nil),
-            _ => Ok(Self::Manual)
+            _ => Ok(Self::Manual),
         }
     }
 }
@@ -198,50 +197,8 @@ impl Time {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Visibility {
-    Indicator(u16),
-    Cavok,
-    Nsc,
-    Skc,
-}
-
-impl FromStr for Visibility {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // Check for special cases first
-        match s {
-            "CAVOK" => return Ok(Visibility::Cavok),
-            "NSC" => return Ok(Visibility::Nsc),
-            "SKC" => return Ok(Visibility::Skc),
-            _ => (),
-        }
-
-        s.parse::<u16>()
-            .map(Visibility::Indicator)
-            .map_err(|_| anyhow::Error::msg("Cannot parse into Visibility"))
-    }
-}
-
-pub fn visibility(s: &str) -> IResult<&str, Visibility> {
-    let s = s.trim_start();
-    alt((
-        map_res(tag("CAVOK"), |_| Visibility::from_str("CAVOK")),
-        map_res(tag("NSC"), |_| Visibility::from_str("NSC")),
-        map_res(tag("SKC"), |_| Visibility::from_str("SKC")),
-        context(
-            "Visibility indicator",
-            map_res(take_while(|x: char| is_digit(x as u8)), |s: &str| {
-                s.parse()
-                    .map_err(|_| nom::Err::Error(nom::error::Error::new(s, ErrorKind::Digit)))
-            }),
-        ),
-    ))(s)
-}
-
-#[derive(Debug, PartialEq)]
 pub struct METAR {
-    report_type:ReportType,
+    report_type: ReportType,
     station: String,
     time: Time,
     wind: Wind,
@@ -251,7 +208,9 @@ pub struct METAR {
 impl METAR {
     pub fn parse(s: &str) -> Result<METAR, nom::Err<nom::error::Error<&str>>> {
         let (_, (station, (time, _), report_type, wind, visibility)) =
-            tuple((take4, time, report_type, wind, visibility))(s.trim_start_matches("METAR").trim())?;
+            tuple((take4, time, report_type, wind, parse_visibility))(
+                s.trim_start_matches("METAR").trim(),
+            )?;
 
         Ok(METAR {
             report_type,
@@ -267,7 +226,6 @@ impl METAR {
 mod test {
 
     use super::*;
-
 
     #[test]
     fn test_report_type() {
@@ -328,15 +286,5 @@ mod test {
             wind("VRB10G40KT").unwrap().1,
             Wind::new(WindDirection::Variable, 10, Some(40), WindUnit::Kt, None).unwrap()
         )
-    }
-
-    #[test]
-    fn test_visibility() {
-        assert_eq!(visibility("CAVOK").unwrap().1, Visibility::Cavok);
-        assert_eq!(visibility("NSC").unwrap().1, Visibility::Nsc);
-        assert_eq!(visibility("SKC").unwrap().1, Visibility::Skc);
-        assert_eq!(visibility("9999").unwrap().1, Visibility::Indicator(9999));
-        assert_eq!(visibility("5000").unwrap().1, Visibility::Indicator(5000));
-        assert_eq!(visibility(" 1000").unwrap().1, Visibility::Indicator(1000));
     }
 }
