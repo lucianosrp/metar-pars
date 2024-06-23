@@ -3,10 +3,13 @@ use std::str::FromStr;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
-    character::{complete::digit1, is_digit},
+    character::{
+        complete::{digit1, multispace1},
+        is_digit,
+    },
     combinator::{map_res, opt},
     error::{context, ErrorKind},
-    sequence::tuple,
+    sequence::{pair, tuple},
     IResult,
 };
 
@@ -37,8 +40,11 @@ impl FromStr for Visibility {
     }
 }
 
-fn parse_partial(s: &str) -> IResult<&str, (&str, Option<&str>, Option<&str>, &str)> {
+fn parse_partial(
+    s: &str,
+) -> IResult<&str, (Option<(&str, &str)>, &str, Option<&str>, Option<&str>, &str)> {
     tuple((
+        opt(pair(digit1, multispace1)),
         take_while(|c: char| is_digit(c as u8)),
         opt(tag("/")),
         opt(digit1),
@@ -47,13 +53,18 @@ fn parse_partial(s: &str) -> IResult<&str, (&str, Option<&str>, Option<&str>, &s
 }
 
 fn partial_statuate_miles_parser(s: &str) -> IResult<&str, Visibility> {
-    let (remainer, (d1, t, d2, _)) = parse_partial(s)?;
+    let (remainer, (d0, d1, t, d2, _)) = parse_partial(s)?;
+
     if let Some(sep) = t {
         if sep == "/" {
             if let Some(denominator) = d2 {
                 let numerator: f64 = d1.parse().unwrap_or_default();
                 let denominator: f64 = denominator.parse().unwrap_or_default();
-                return Ok((remainer, Visibility::StatuateMiles(numerator / denominator)));
+                let mut partial_res = numerator / denominator;
+                if let Some((whole, _)) = d0 {
+                    partial_res += whole.parse::<f64>().unwrap_or_default()
+                }
+                return Ok((remainer, Visibility::StatuateMiles(partial_res)));
             }
         };
     } else {
@@ -110,9 +121,9 @@ mod test {
             parse_visibility("10SM").unwrap().1,
             Visibility::StatuateMiles(10.0)
         );
-        // assert_eq!(
-        //     parse_visibility("1 1/2SM").unwrap().1,
-        //     Visibility::StatuateMiles(1.5)
-        // );
+        assert_eq!(
+            parse_visibility("1 1/2SM").unwrap().1,
+            Visibility::StatuateMiles(1.5)
+        );
     }
 }
