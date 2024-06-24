@@ -12,7 +12,8 @@ Following [this useful page](https://wiki.ivao.aero/en/home/training/documentati
 - [x] Forecast Times (Mostly)
 - [x] Wind
 - [x] Visibility (Meters only)
-- [ ] Visibility (SM)
+- [x] Visibility (SM)
+- [ ] Visibility (Custom directions)
 - [ ] Runway Visual Range (RVR)
 - [ ] Present Weather
 - [ ] Cloud Layers
