@@ -26,7 +26,6 @@ impl FromStr for Visibility {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // Check for special cases first
         match s {
             "CAVOK" => return Ok(Visibility::Cavok),
             "NSC" => return Ok(Visibility::Nsc),
@@ -36,7 +35,7 @@ impl FromStr for Visibility {
 
         s.parse::<u16>()
             .map(Visibility::Meters)
-            .map_err(|_| anyhow::Error::msg("Cannot parse into Visibility"))
+            .map_err(|_| anyhow::anyhow!("Cannot parse into Visibility"))
     }
 }
 
@@ -97,33 +96,22 @@ pub fn parse_visibility(s: &str) -> IResult<&str, Visibility> {
 mod test {
     use super::*;
     #[test]
-    fn test_parse_visibility() {
-        assert_eq!(parse_visibility("CAVOK").unwrap().1, Visibility::Cavok);
-        assert_eq!(parse_visibility("NSC").unwrap().1, Visibility::Nsc);
-        assert_eq!(parse_visibility("SKC").unwrap().1, Visibility::Skc);
+    fn test_parse_visibility() -> anyhow::Result<()> {
+        assert_eq!(parse_visibility("CAVOK")?.1, Visibility::Cavok);
+        assert_eq!(parse_visibility("NSC")?.1, Visibility::Nsc);
+        assert_eq!(parse_visibility("SKC")?.1, Visibility::Skc);
+        assert_eq!(parse_visibility("9999")?.1, Visibility::Meters(9999));
+        assert_eq!(parse_visibility("5000")?.1, Visibility::Meters(5000));
+        assert_eq!(parse_visibility(" 1000")?.1, Visibility::Meters(1000));
         assert_eq!(
-            parse_visibility("9999").unwrap().1,
-            Visibility::Meters(9999)
-        );
-        assert_eq!(
-            parse_visibility("5000").unwrap().1,
-            Visibility::Meters(5000)
-        );
-        assert_eq!(
-            parse_visibility(" 1000").unwrap().1,
-            Visibility::Meters(1000)
-        );
-        assert_eq!(
-            parse_visibility("1/4SM").unwrap().1,
+            parse_visibility("1/4SM")?.1,
             Visibility::StatuateMiles(0.25)
         );
+        assert_eq!(parse_visibility("10SM")?.1, Visibility::StatuateMiles(10.0));
         assert_eq!(
-            parse_visibility("10SM").unwrap().1,
-            Visibility::StatuateMiles(10.0)
-        );
-        assert_eq!(
-            parse_visibility("1 1/2SM").unwrap().1,
+            parse_visibility("1 1/2SM")?.1,
             Visibility::StatuateMiles(1.5)
         );
+        Ok(())
     }
 }
