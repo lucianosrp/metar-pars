@@ -14,12 +14,57 @@ use nom::{
 };
 
 #[derive(Debug, PartialEq)]
+pub enum VisibilityDirection {
+    North,
+    NorthEast,
+    East,
+    SouthEast,
+    South,
+    SouthWest,
+    West,
+    NorthWest,
+}
+
+impl FromStr for VisibilityDirection {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "N" => Ok(VisibilityDirection::North),
+            "NE" => Ok(VisibilityDirection::NorthEast),
+            "E" => Ok(VisibilityDirection::East),
+            "SE" => Ok(VisibilityDirection::SouthEast),
+            "S" => Ok(VisibilityDirection::South),
+            "SW" => Ok(VisibilityDirection::SouthWest),
+            "W" => Ok(VisibilityDirection::West),
+            "NW" => Ok(VisibilityDirection::NorthWest),
+            _ => Err(anyhow::Error::msg("Erro while converting from str")),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Visibility {
     Meters(u16),
     StatuateMiles(f64),
     Cavok,
     Nsc,
     Skc,
+    CustomDirection(Box<Visibility>, Box<Visibility>, VisibilityDirection),
+}
+impl Visibility {
+    fn from_tuple(
+        t: (Visibility, Option<(Visibility, &str)>),
+    ) -> Result<Visibility, anyhow::Error> {
+        match t.1 {
+            Some(v) => Ok(Visibility::CustomDirection(
+                Box::new(t.0),
+                Box::new(v.0),
+                VisibilityDirection::from_str(v.1)?,
+            )),
+            None => Ok(t.0),
+        }
+    }
 }
 
 impl FromStr for Visibility {
@@ -92,6 +137,33 @@ pub fn parse_visibility(s: &str) -> IResult<&str, Visibility> {
     ))(s)
 }
 
+pub fn parse_visibility_full(s: &str) -> IResult<&str, Visibility> {
+    let carinal_tags = alt((
+        tag("NW"),
+        tag("NE"),
+        tag("SE"),
+        tag("SW"),
+        tag("N"),
+        tag("E"),
+        tag("S"),
+        tag("W"),
+    ));
+    let s = s.trim_start();
+    map_res(
+        tuple((
+            parse_visibility,
+            opt(tuple((parse_visibility, carinal_tags))),
+        )),
+        |res| {
+            Visibility::from_tuple(res).map_err(|_| {
+                nom::Err::Error(nom::error::Error::new(
+                    "Error while parsing Custom Direction",
+                    ErrorKind::Digit,
+                ))
+            })
+        },
+    )(s)
+}
 #[cfg(test)]
 mod test {
     use super::*;
@@ -111,6 +183,19 @@ mod test {
         assert_eq!(
             parse_visibility("1 1/2SM")?.1,
             Visibility::StatuateMiles(1.5)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_visibility_custom_direction() -> anyhow::Result<()> {
+        assert_eq!(
+            parse_visibility_full("2000 1200NW")?.1,
+            Visibility::CustomDirection(
+                Box::new(Visibility::Meters(2000)),
+                Box::new(Visibility::Meters(1200)),
+                VisibilityDirection::NorthWest
+            )
         );
         Ok(())
     }

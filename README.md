@@ -8,7 +8,7 @@ Rust tool to parse METAR weather bulletins
 ## External sources
 Following [this useful page](https://wiki.ivao.aero/en/home/training/documentation/METAR_explanation) to parse each METAR's elements.
 
-## Elements covered 
+## Elements covered
 ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/30)
 
 - [x] Report type (AUTO , Manual)
@@ -17,7 +17,7 @@ Following [this useful page](https://wiki.ivao.aero/en/home/training/documentati
 - [x] Wind
 - [x] Visibility (Meters only)
 - [x] Visibility (SM)
-- [ ] Visibility (Custom directions)
+- [x] Visibility (Custom directions)
 - [ ] Runway Visual Range (RVR)
 - [ ] Present Weather
 - [ ] Cloud Layers
