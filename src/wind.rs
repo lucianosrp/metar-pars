@@ -43,14 +43,12 @@ pub fn parse_wind(s: &str) -> IResult<&str, Wind> {
     Ok((rest, w))
 }
 
-
 #[derive(Debug, PartialEq)]
 pub enum WindUnit {
     Mps,
     Mph,
     Kt,
 }
-
 
 #[derive(Debug, PartialEq)]
 pub enum WindDirection {

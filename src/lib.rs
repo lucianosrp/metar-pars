@@ -1,4 +1,3 @@
-use std::num::ParseIntError;
 use std::str::FromStr;
 
 use nom::branch::alt;
@@ -12,12 +11,11 @@ use wind::{parse_wind, Wind};
 pub mod visibility;
 pub mod wind;
 
-
-fn parse_with_bounds(min: u8, max: u8, s: &str) -> Result<u8, ParseIntError> {
+fn parse_with_bounds(min: u8, max: u8, s: &str) -> anyhow::Result<u8> {
     match s.parse::<u8>() {
         Ok(d) if d >= min && d <= max => Ok(d),
-        Ok(_) => panic!("Value out of bounds"),
-        Err(e) => Err(e),
+        Ok(_) => Err(anyhow::anyhow!("Value out of bounds")),
+        Err(e) => Err(e.into()),
     }
 }
 fn take4(s: &str) -> IResult<&str, &str> {
@@ -64,7 +62,7 @@ struct Time {
 }
 
 impl Time {
-    fn from_vec(v: Vec<&str>) -> Result<Time, ParseIntError> {
+    fn from_vec(v: Vec<&str>) -> anyhow::Result<Time> {
         assert!(v.len() == 3);
         let day = parse_with_bounds(1, 31, v[0])?;
         let hour = parse_with_bounds(0, 23, v[1])?;
@@ -105,10 +103,11 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_report_type() {
-        assert_eq!(report_type("AUTO").unwrap().1, ReportType::Auto);
-        assert_eq!(report_type("NIL").unwrap().1, ReportType::Nil);
-        assert_eq!(report_type("Something else").unwrap().1, ReportType::Manual);
-        assert_eq!(report_type("").unwrap().1, ReportType::Manual);
+    fn test_report_type() -> anyhow::Result<()> {
+        assert_eq!(report_type("AUTO")?.1, ReportType::Auto);
+        assert_eq!(report_type("NIL")?.1, ReportType::Nil);
+        assert_eq!(report_type("Something else")?.1, ReportType::Manual);
+        assert_eq!(report_type("")?.1, ReportType::Manual);
+        Ok(())
     }
 }
