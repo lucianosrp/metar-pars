@@ -72,7 +72,7 @@ impl Time {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct METAR {
+pub struct Metar {
     report_type: ReportType,
     station: String,
     time: Time,
@@ -80,14 +80,14 @@ pub struct METAR {
     visibility: Visibility,
 }
 
-impl METAR {
-    pub fn parse(s: &str) -> Result<METAR, nom::Err<nom::error::Error<&str>>> {
+impl Metar {
+    pub fn parse(s: &str) -> Result<Metar, nom::Err<nom::error::Error<&str>>> {
         let (_, (station, (time, _), report_type, wind, visibility)) =
             tuple((take4, time, report_type, parse_wind, parse_visibility))(
-                s.trim_start_matches("METAR").trim(),
+                s.trim_start_matches("Metar").trim(),
             )?;
 
-        Ok(METAR {
+        Ok(Metar {
             report_type,
             station: station.to_owned(),
             time,
