@@ -6,8 +6,10 @@ use nom::combinator::{map_res, opt};
 use nom::multi::count;
 use nom::sequence::tuple;
 use nom::{bytes::complete::take, IResult};
+use rvr::RunwayVisualRange;
 use visibility::{parse_visibility, Visibility};
 use wind::{parse_wind, Wind};
+pub mod rvr;
 pub mod visibility;
 pub mod wind;
 
@@ -78,6 +80,7 @@ pub struct Metar {
     time: Time,
     wind: Wind,
     visibility: Visibility,
+    runway_visual_range: Vec<RunwayVisualRange>,
 }
 
 impl Metar {
@@ -93,6 +96,7 @@ impl Metar {
             time,
             wind,
             visibility,
+            runway_visual_range: vec![],
         })
     }
 }
