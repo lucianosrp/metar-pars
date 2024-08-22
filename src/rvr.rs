@@ -91,15 +91,16 @@ pub fn parse_rvr(s: &str) -> IResult<&str, RunwayVisualRange> {
         |s: Option<&str>| s.and_then(|x| x.parse::<VisibilityStatus>().ok()),
     );
 
-    let (other, (_, number, position, _, vis_scale, vis_meter, vis_status)) = tuple((
-        tag("R"),
-        nomi8,
-        opt(position_parser),
-        tag("/"),
-        opt(vis_scale_parser),
-        meter_parser,
-        opt(vis_status_parser),
-    ))(s)?;
+    let (other, (_, number, position, _, vis_scale, vis_meter, vis_status)) =
+        tuple((
+            tag("R"),
+            nomi8,
+            opt(position_parser),
+            tag("/"),
+            opt(vis_scale_parser),
+            meter_parser,
+            opt(vis_status_parser),
+        ))(s.trim_start())?;
     Ok((
         other,
         RunwayVisualRange {
@@ -131,6 +132,18 @@ mod test {
                 visibility_status: Some(VisibilityStatus::Up)
             }
         );
+
+        let res = parse_rvr("R04/P1500N")?.1;
+        assert_eq!(
+            res,
+            RunwayVisualRange {
+                number: 4,
+                position: None,
+                visibility_meters: 1500,
+                visibility_scale: Some(VisibilityScale::Plus),
+                visibility_status: Some(VisibilityStatus::No)
+            }
+        );
         Ok(())
     }
     #[test]
@@ -151,7 +164,7 @@ mod test {
 
     #[test]
     fn test_parse_rvrs() -> anyhow::Result<()> {
-        let res = parse_rvrs("R25L/M1075N R25C/P200U")?.1;
+        let res = parse_rvrs("R25L/M1075N R25C/P200U R25R/1000N")?.1;
         assert_eq!(
             res,
             vec![
@@ -168,6 +181,13 @@ mod test {
                     visibility_meters: 200,
                     visibility_scale: Some(VisibilityScale::Plus),
                     visibility_status: Some(VisibilityStatus::Up)
+                },
+                RunwayVisualRange {
+                    number: 25,
+                    position: Some(RunwayPosition::Right),
+                    visibility_meters: 1000,
+                    visibility_scale: None,
+                    visibility_status: Some(VisibilityStatus::No)
                 }
             ]
         );
