@@ -6,8 +6,10 @@ use nom::combinator::{map_res, opt};
 use nom::multi::count;
 use nom::sequence::tuple;
 use nom::{bytes::complete::take, IResult};
+use rvr::RunwayVisualRange;
 use visibility::{parse_visibility, Visibility};
 use wind::{parse_wind, Wind};
+pub mod rvr;
 pub mod visibility;
 pub mod wind;
 
@@ -72,27 +74,29 @@ impl Time {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct METAR {
+pub struct Metar {
     report_type: ReportType,
     station: String,
     time: Time,
     wind: Wind,
     visibility: Visibility,
+    runway_visual_range: Vec<RunwayVisualRange>,
 }
 
-impl METAR {
-    pub fn parse(s: &str) -> Result<METAR, nom::Err<nom::error::Error<&str>>> {
+impl Metar {
+    pub fn parse(s: &str) -> Result<Metar, nom::Err<nom::error::Error<&str>>> {
         let (_, (station, (time, _), report_type, wind, visibility)) =
             tuple((take4, time, report_type, parse_wind, parse_visibility))(
-                s.trim_start_matches("METAR").trim(),
+                s.trim_start_matches("Metar").trim(),
             )?;
 
-        Ok(METAR {
+        Ok(Metar {
             report_type,
             station: station.to_owned(),
             time,
             wind,
             visibility,
+            runway_visual_range: vec![],
         })
     }
 }

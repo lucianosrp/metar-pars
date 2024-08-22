@@ -18,7 +18,7 @@ Following [this useful page](https://wiki.ivao.aero/en/home/training/documentati
 - [x] Visibility (Meters only)
 - [x] Visibility (SM)
 - [x] Visibility (Custom directions)
-- [ ] Runway Visual Range (RVR)
+- [x] Runway Visual Range (RVR)
 - [ ] Present Weather
 - [ ] Cloud Layers
 - [ ] Air temperature and dew point

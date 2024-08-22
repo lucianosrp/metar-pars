@@ -148,7 +148,7 @@ pub fn parse_visibility_full(s: &str) -> IResult<&str, Visibility> {
         tag("S"),
         tag("W"),
     ));
-    let s = s.trim_start();
+    let s = s.trim();
     map_res(
         tuple((
             parse_visibility,
@@ -195,6 +195,22 @@ mod test {
                 Box::new(Visibility::Meters(2000)),
                 Box::new(Visibility::Meters(1200)),
                 VisibilityDirection::NorthWest
+            )
+        );
+        assert_eq!(
+            parse_visibility_full("3000 2000S")?.1,
+            Visibility::CustomDirection(
+                Box::new(Visibility::Meters(3000)),
+                Box::new(Visibility::Meters(2000)),
+                VisibilityDirection::South
+            )
+        );
+        assert_eq!(
+            parse_visibility_full("1 1/2SM 10SMS")?.1,
+            Visibility::CustomDirection(
+                Box::new(Visibility::StatuateMiles(1.5)),
+                Box::new(Visibility::StatuateMiles(10.0)),
+                VisibilityDirection::South
             )
         );
         Ok(())
