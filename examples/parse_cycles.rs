@@ -9,7 +9,7 @@ fn get_cycles() -> Result<String> {
     Ok(res)
 }
 
-fn main() -> Result<(), anyhow::Error> {
+fn main() -> Result<()> {
     let res = get_cycles()?;
     let s = Instant::now();
     let lines: Vec<_> = res
