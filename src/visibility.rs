@@ -7,13 +7,17 @@ use nom::{
         complete::{digit1, multispace1},
         is_digit,
     },
-    combinator::{map_res, opt},
+    combinator::{map_res, opt, value},
     error::{context, ErrorKind},
     sequence::{pair, tuple},
     IResult,
 };
 
-#[derive(Debug, PartialEq)]
+use anyhow::Error;
+
+use crate::tag_enum_parser;
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum VisibilityDirection {
     North,
     NorthEast,
@@ -26,7 +30,7 @@ pub enum VisibilityDirection {
 }
 
 impl FromStr for VisibilityDirection {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -43,7 +47,7 @@ impl FromStr for VisibilityDirection {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Visibility {
     Meters(u16),
     StatuateMiles(f64),
@@ -123,9 +127,11 @@ fn partial_statuate_miles_parser(s: &str) -> IResult<&str, Visibility> {
 pub fn parse_visibility(s: &str) -> IResult<&str, Visibility> {
     let s = s.trim_start();
     alt((
-        map_res(tag("CAVOK"), |_| Visibility::from_str("CAVOK")),
-        map_res(tag("NSC"), |_| Visibility::from_str("NSC")),
-        map_res(tag("SKC"), |_| Visibility::from_str("SKC")),
+        tag_enum_parser!(
+            "CAVOK" => Visibility::Cavok,
+            "NSC" => Visibility::Nsc,
+            "SKC" => Visibility::Skc
+        ),
         partial_statuate_miles_parser,
         context(
             "Visibility Meters",

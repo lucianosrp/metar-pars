@@ -1,69 +1,36 @@
 use std::str::FromStr;
 
+use crate::tag_enum;
+use anyhow::Error;
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{i32 as nomi32, i8 as nomi8},
-    combinator::{map_opt, opt},
+    combinator::{opt, value},
     multi::separated_list0,
     sequence::tuple,
     IResult,
 };
 
-#[derive(Debug, PartialEq)]
-pub enum RunwayPosition {
-    Left,
-    Center,
-    Right,
+use crate::utils::Parseable;
+tag_enum! {
+    RunwayPosition,
+    "L" => Left,
+    "C" => Center,
+    "R" => Right
 }
 
-impl FromStr for RunwayPosition {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "L" => Ok(RunwayPosition::Left),
-            "R" => Ok(RunwayPosition::Right),
-            "C" => Ok(RunwayPosition::Center),
-            _ => Err(format!("Cannot parse {}", s)),
-        }
-    }
+tag_enum! {
+    VisibilityScale,
+    "P" => Plus,
+    "M" => Minus
 }
 
-#[derive(Debug, PartialEq)]
-pub enum VisibilityScale {
-    Plus,
-    Minus,
-}
-
-impl FromStr for VisibilityScale {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "P" => Ok(VisibilityScale::Plus),
-            "M" => Ok(VisibilityScale::Minus),
-            _ => Err(format!("Cannot parse {}", s)),
-        }
-    }
-}
-#[derive(Debug, PartialEq)]
-pub enum VisibilityStatus {
-    Down,
-    Up,
-    No,
-}
-impl FromStr for VisibilityStatus {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "D" => Ok(VisibilityStatus::Down),
-            "U" => Ok(VisibilityStatus::Up),
-            "N" => Ok(VisibilityStatus::No),
-            _ => Err(format!("Cannot parse {}", s)),
-        }
-    }
+tag_enum! {
+    VisibilityStatus,
+    "D" => Down,
+    "U" => Up,
+    "N" => No
 }
 
 #[derive(Debug, PartialEq)]
@@ -77,19 +44,10 @@ pub struct RunwayVisualRange {
 
 pub fn parse_rvr(s: &str) -> IResult<&str, RunwayVisualRange> {
     let meter_parser = nomi32;
-    let position_parser = map_opt(
-        opt(alt((tag("L"), tag("R"), tag("C")))),
-        |s: Option<&str>| s.and_then(|x| x.parse::<RunwayPosition>().ok()),
-    );
 
-    let vis_scale_parser = map_opt(opt(alt((tag("M"), tag("P")))), |s: Option<&str>| {
-        s.and_then(|x| x.parse::<VisibilityScale>().ok())
-    });
-
-    let vis_status_parser = map_opt(
-        opt(alt((tag("D"), tag("U"), tag("N")))),
-        |s: Option<&str>| s.and_then(|x| x.parse::<VisibilityStatus>().ok()),
-    );
+    let position_parser = RunwayPosition::parse;
+    let vis_scale_parser = VisibilityScale::parse;
+    let vis_status_parser = VisibilityStatus::parse;
 
     let (other, (_, number, position, _, vis_scale, vis_meter, vis_status)) = tuple((
         tag("R"),

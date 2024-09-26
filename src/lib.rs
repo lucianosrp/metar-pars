@@ -9,7 +9,9 @@ use nom::{bytes::complete::take, IResult};
 use rvr::RunwayVisualRange;
 use visibility::{parse_visibility, Visibility};
 use wind::{parse_wind, Wind};
+mod present_weather;
 pub mod rvr;
+mod utils;
 pub mod visibility;
 pub mod wind;
 
